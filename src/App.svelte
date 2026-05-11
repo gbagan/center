@@ -1,7 +1,8 @@
 <script lang="ts">
-    import { centroid, dist, geometric_median, minimum_enclosing_circle, type Disk, type Point } from "./lib/geometry";
+  import { centroid, dist, geometric_median, minimum_enclosing_circle,
+    type Disk, type Point } from "./lib/geometry";
 
-  let points: Point[] = $state([{x: 0.1, y: 0.1}, {x: 0.3, y:0.9}, {x: 0.9, y: 0.3}]);
+  let points: Point[] = $state([]);
   let center1: Point | null = $derived(centroid(points));
   let mec: Disk | null = $derived(minimum_enclosing_circle(points));
   let median: Point | null = $derived(geometric_median(points));
@@ -57,8 +58,8 @@
     const position = getPointerPosition(e);
     if (mode === "move") {
       points.push(position);
-      mode = "move";
     }
+    mode = "move";
   }
 
   function handlePointClick(idx: number, e: MouseEvent) {
@@ -90,6 +91,11 @@
     selectedNode = null;
   }
 
+  function handlePointerLeave() {
+    selectedNode = null;
+    pointerPosition = null;
+  }
+
   function clear() {
     points = [];
   }
@@ -104,6 +110,7 @@
     class="canvas"
     onclick={handleSvgClick}
     onpointermove={move}
+    onpointerleave={handlePointerLeave}
   >
     {#if showCenter2 && mec !== null && showMec}
       <circle
