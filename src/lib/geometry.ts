@@ -1,3 +1,5 @@
+import { sumBy } from "./util";
+
 export type Point = { readonly x: number, readonly y: number};
 export type Disk = { readonly center: Point, readonly radius: number };
 
@@ -8,8 +10,8 @@ export function centroid(ps: readonly Point[]) {
     return null;
   }
   return {
-    x: ps.reduce((acc, p) => acc+p.x, 0) / ps.length,
-    y: ps.reduce((acc, p) => acc+p.y, 0) / ps.length,
+    x: sumBy(ps, p => p.x) / ps.length,
+    y: sumBy(ps, p => p.y) / ps.length,
   }
 }
 
@@ -18,7 +20,7 @@ function circumcenter(a: Point, b: Point, c: Point): Disk {
     a.x * (b.y - c.y) +
     b.x * (c.y - a.y) +
     c.x * (a.y - b.y)
-  )
+  );
 
   const x = (
     (a.x**2 + a.y**2) * (b.y - c.y) +
@@ -43,7 +45,6 @@ export function dist(a: Point, b: Point) {
 function is_in_circle(p: Point, d: Disk) {
   return dist(p, d.center) <= d.radius + EPS
 }
-
 
 function trivial_circle(points: readonly Point[]): Disk {
   switch (points.length) {

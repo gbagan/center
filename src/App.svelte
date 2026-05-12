@@ -1,6 +1,7 @@
 <script lang="ts">
   import { centroid, dist, geometric_median, minimum_enclosing_circle,
     type Disk, type Point } from "./lib/geometry";
+    import { sumBy } from "./lib/util";
 
   let points: Point[] = $state([]);
   let center1: Point | null = $derived(centroid(points));
@@ -24,29 +25,27 @@
   let sumDistanceToPointer = $derived(
     pointerPosition === null
     ? null
-    : points.reduce((acc, p) => acc + dist(p, pointerPosition!), 0)
+    : sumBy(points, p => dist(p, pointerPosition!))
   );
 
   let sumSquareDistanceToPointer = $derived(
     pointerPosition === null
     ? null
-    : points.reduce((acc, p) => acc + dist(p, pointerPosition!) ** 2, 0)
+    : sumBy(points, p => dist(p, pointerPosition!) ** 2)
   );
 
 
   let sumDistanceToCenter = $derived(
     median === null
     ? null
-    : points.reduce((acc, p) => acc + dist(p, median), 0)
+    : sumBy(points, p => dist(p, median))
   );
 
   let sumSquareDistanceToCenter = $derived(
     center1 === null
     ? null
-    : points.reduce((acc, p) => acc + dist(p, center1) ** 2, 0)
+    : sumBy(points, p => dist(p, center1) ** 2)
   );
-
-  
 
   function getPointerPosition(e: MouseEvent): Point {
     const el = e.currentTarget as Element;
