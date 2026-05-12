@@ -297,11 +297,11 @@
     {:else}
       <h2>Affichage des centres</h2>
       <label>
-        <input type="checkbox" bind:checked={showCenter1} />
+        <input type="checkbox" bind:checked={showCenter1L1} />
         Médian L1
       </label>
       <label>
-        <input type="checkbox" bind:checked={showCenter2} />
+        <input type="checkbox" bind:checked={showCenter2L1} />
         Centre du losange englobant minimum
       </label>
     {/if}
