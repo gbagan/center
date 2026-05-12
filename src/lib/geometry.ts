@@ -1,4 +1,4 @@
-import { sumBy } from "./util";
+import { median, sumBy } from "./util";
 
 export type Point = { readonly x: number, readonly y: number};
 export type Disk = { readonly center: Point, readonly radius: number };
@@ -42,11 +42,15 @@ export function dist(a: Point, b: Point) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
-function is_in_circle(p: Point, d: Disk) {
+export function manhattan(a: Point, b: Point) {
+  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+}
+
+function insideCircle(p: Point, d: Disk) {
   return dist(p, d.center) <= d.radius + EPS
 }
 
-function trivial_circle(points: readonly Point[]): Disk {
+function trivialCircle(points: readonly Point[]): Disk {
   switch (points.length) {
     case 0:
       return {center: {x: 0, y: 0}, radius: 0};  
@@ -64,27 +68,27 @@ function trivial_circle(points: readonly Point[]): Disk {
 
 function welzl(ps: readonly Point[], rs: readonly Point[], n: number): Disk {
   if (n === 0 || rs.length === 3) {
-    return trivial_circle(rs)
+    return trivialCircle(rs)
   }
 
   const p = ps[n - 1];
   const disk = welzl(ps, rs, n - 1);
 
-  if (is_in_circle(p, disk)) {
+  if (insideCircle(p, disk)) {
     return disk;
   }
 
   return welzl(ps, rs.concat([p]), n - 1);
 }
 
-export function minimum_enclosing_circle(points: readonly Point[]): Disk | null {
+export function minimumEnclosingCircle(points: readonly Point[]): Disk | null {
   if (points.length === 0) {
     return null;
   }
   return welzl(points, [], points.length)
 }
 
-export function geometric_median(points: readonly Point[], eps=1e-5, maxIter=500) {
+export function geometricMedian(points: readonly Point[], eps=1e-5, maxIter=500) {
   if (points.length === 0) {
     return null;
   }
@@ -114,4 +118,30 @@ export function geometric_median(points: readonly Point[], eps=1e-5, maxIter=500
   }
 
   return current
+}
+
+export function minimumEnclosingLosange(points: readonly Point[]): Disk | null {
+  if (points.length === 0) {
+    return null;
+  }
+  const us = points.map(p => p.x + p.y);
+  const vs = points.map(p => p.x - p.y);
+  const uMin = Math.min(...us);
+  const uMax = Math.max(...us);
+  const vMin = Math.min(...vs);
+  const vMax = Math.max(...vs);
+  const u = (uMin + uMax) / 2;
+  const v = (vMin + vMax) / 2;
+  const center = {x: (u + v) / 2, y: (u - v) / 2};
+  const radius = Math.max(uMax - uMin, vMax - vMin) / 2;
+  return {center, radius};  
+}
+
+export function geometricMedianL1(points: readonly Point[]): Point | null {
+  if (points.length === 0) {
+    return null;
+  }
+  const x = median(points.map(p => p.x))!;
+  const y = median(points.map(p => p.y))!;
+  return { x, y };
 }

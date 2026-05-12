@@ -1,16 +1,22 @@
 <script lang="ts">
-  import { centroid, dist, geometric_median, minimum_enclosing_circle,
+  import { centroid, dist, geometricMedian, geometricMedianL1, manhattan, minimumEnclosingCircle,
+    minimumEnclosingLosange,
     type Disk, type Point } from "./lib/geometry";
-    import { sumBy } from "./lib/util";
+  import { sumBy } from "./lib/util";
 
   let points: Point[] = $state([]);
   let center1: Point | null = $derived(centroid(points));
-  let mec: Disk | null = $derived(minimum_enclosing_circle(points));
-  let median: Point | null = $derived(geometric_median(points));
+  let mec: Disk | null = $derived(minimumEnclosingCircle(points));
+  let median: Point | null = $derived(geometricMedian(points));
+  let meLosange: Disk | null = $derived(minimumEnclosingLosange(points));
+  let medianL1: Point | null = $derived(geometricMedianL1(points));
   let mode: "remove" | "move" = $state("move");
+  let norm: "euclidean" |  "manhattan" = $state("euclidean");
   let showCenter1 = $state(true);
   let showCenter2 = $state(true);
   let showCenter3 = $state(true);
+  let showCenter1L1 = $state(true);
+  let showCenter2L1 = $state(true);
   let showMec = $state(false);
   let showPathsFromMedian = $state(false)
   let selectedNode: number | null = $state(null);
@@ -19,13 +25,19 @@
   let maxDistanceToPointer = $derived(
     pointerPosition === null
     ? null
-    : Math.max(0, ...points.map(p => dist(p, pointerPosition!), 0))
+    : norm === "euclidean" 
+    ? Math.max(0, ...points.map(p => dist(p, pointerPosition!), 0))
+    : Math.max(0, ...points.map(p => manhattan(p, pointerPosition!), 0))
   );
+
+  
 
   let sumDistanceToPointer = $derived(
     pointerPosition === null
     ? null
-    : sumBy(points, p => dist(p, pointerPosition!))
+    : norm === "euclidean"
+    ? sumBy(points, p => dist(p, pointerPosition!))
+    : sumBy(points, p => manhattan(p, pointerPosition!))
   );
 
   let sumSquareDistanceToPointer = $derived(
@@ -36,9 +48,9 @@
 
 
   let sumDistanceToCenter = $derived(
-    median === null
-    ? null
-    : sumBy(points, p => dist(p, median))
+    norm === "euclidean"
+    ? (median === null ? null : sumBy(points, p => dist(p, median)))
+    : (medianL1 === null ? null : sumBy(points, p => manhattan(p, medianL1)))
   );
 
   let sumSquareDistanceToCenter = $derived(
@@ -111,7 +123,7 @@
     onpointermove={move}
     onpointerleave={handlePointerLeave}
   >
-    {#if showCenter2 && mec !== null && showMec}
+    {#if norm === "euclidean" && showCenter2 && mec !== null && showMec}
       <circle
         r={mec.radius * 100}
         fill="rgba(255, 0, 0, 0.1)"
@@ -121,7 +133,7 @@
         cy={100 * mec.center.y}
       />
     {/if}
-    {#if showCenter3 && median !== null && showPathsFromMedian}
+    {#if norm === "euclidean" && showCenter3 && median !== null && showPathsFromMedian}
       {#each points as point}
         <line
           x1={100 * median.x}
@@ -133,7 +145,7 @@
         />
       {/each}
     {/if}
-    {#if showCenter1 && center1 !== null}
+    {#if norm === "euclidean" && showCenter1 && center1 !== null}
       <circle
         r="1.5"
         fill="green"
@@ -143,7 +155,7 @@
         cy={100 * center1.y}
       />
     {/if}
-    {#if showCenter2 && mec !== null}
+    {#if norm === "euclidean" && showCenter2 && mec !== null}
       <circle
         r="1.5"
         fill="red"
@@ -156,16 +168,52 @@
 
       />
     {/if}
-    {#if showCenter3 && median !== null}
+    {#if norm === "euclidean" && showCenter3 && median !== null}
       <circle
         r="1.5"
         fill="blue"
-        stroke="black"
+        stroke="black"  
         stroke-width="0.1"
         cx={100 * median.x}
         cy={100 * median.y}
         onpointerenter={() => showPathsFromMedian = true}
         onpointerleave={() => showPathsFromMedian = false}
+      />
+    {/if}
+    {#if norm === "manhattan" && showCenter2L1 && meLosange !== null && showMec}
+      {@const points = [
+        { x: meLosange.center.x, y: meLosange.center.y - meLosange.radius },
+        { x: meLosange.center.x + meLosange.radius, y: meLosange.center.y },
+        { x: meLosange.center.x, y: meLosange.center.y + meLosange.radius },
+        { x: meLosange.center.x - meLosange.radius, y: meLosange.center.y },
+      ]}
+      <polygon
+        points="{points.map(p => `${(p.x) * 100},${(p.y) * 100}`).join(' ')}"
+        fill="rgba(255, 0, 0, 0.1)"
+        stroke="red"
+        stroke-width="0.1"
+      />
+    {/if}
+    {#if norm === "manhattan" && showCenter1L1 && medianL1 !== null}
+      <circle
+        r="1.5"
+        fill="blue"
+        stroke="black"
+        stroke-width="0.1"
+        cx={100 * medianL1.x}
+        cy={100 * medianL1.y}
+      />
+    {/if}
+    {#if norm === "manhattan" && showCenter2L1 && meLosange !== null}
+      <circle
+        r="1.5"
+        fill="red"
+        stroke="black"
+        stroke-width="0.1"
+        cx={100 * meLosange.center.x}
+        cy={100 * meLosange.center.y}
+        onpointerenter={() => showMec = true}
+        onpointerleave={() => showMec = false}
       />
     {/if}
     {#each points as point, i}
@@ -185,22 +233,35 @@
 {/snippet}
 
 <div class="app">
-  <div>
-    <h2 style:color="blue">Somme des distances</h2>
-    <ul>
-      <li>Du pointeur: {sumDistanceToPointer !== null ? (100 * sumDistanceToPointer).toFixed(3) : '∅'}</li>
-      <li>Minimale: {sumDistanceToCenter !== null ? (100 * sumDistanceToCenter).toFixed(3) : '∅'}</li>
-    </ul>
-    <h2 style:color="green">Somme des distances au carré</h2>
-    <ul>
-      <li>Du pointeur: {sumSquareDistanceToPointer !== null ? (10000 * sumSquareDistanceToPointer).toFixed(3) : '∅'}</li>
-      <li>Minimale: {sumSquareDistanceToCenter !== null ? (10000 * sumSquareDistanceToCenter).toFixed(3) : '∅'}</li>
-    </ul>
-    <h2 style:color="red">Distance maximale</h2>
-    <ul>
-      <li>Du pointeur: {maxDistanceToPointer !== null ? (100 * maxDistanceToPointer).toFixed(3) : '∅'}</li>
-      <li>Minimale: {mec !== null ? (100 * mec.radius).toFixed(3) : '∅'}</li>
-    </ul>
+  <div class="info">
+    {#if norm === "euclidean"}
+      <h2 style:color="blue">Somme des distances</h2>
+      <ul>
+        <li>Du pointeur: {sumDistanceToPointer !== null ? (100 * sumDistanceToPointer).toFixed(3) : '∅'}</li>
+        <li>Minimale: {sumDistanceToCenter !== null ? (100 * sumDistanceToCenter).toFixed(3) : '∅'}</li>
+      </ul>
+      <h2 style:color="green">Somme des distances au carré</h2>
+      <ul>
+        <li>Du pointeur: {sumSquareDistanceToPointer !== null ? (10000 * sumSquareDistanceToPointer).toFixed(3) : '∅'}</li>
+        <li>Minimale: {sumSquareDistanceToCenter !== null ? (10000 * sumSquareDistanceToCenter).toFixed(3) : '∅'}</li>
+      </ul>
+      <h2 style:color="red">Distance maximale</h2>
+      <ul>
+        <li>Du pointeur: {maxDistanceToPointer !== null ? (100 * maxDistanceToPointer).toFixed(3) : '∅'}</li>
+        <li>Minimale: {mec !== null ? (100 * mec.radius).toFixed(3) : '∅'}</li>
+      </ul>
+    {:else}
+      <h2 style:color="blue">Somme des distances L1</h2>
+      <ul>
+        <li>Du pointeur: {sumDistanceToPointer !== null ? (100 * sumDistanceToPointer).toFixed(3) : '∅'}</li>
+        <li>Minimale: {sumDistanceToCenter !== null ? (100 * sumDistanceToCenter).toFixed(3) : '∅'}</li>
+      </ul>
+      <h2 style:color="red">Distance maximale L1</h2>
+      <ul>
+        <li>Du pointeur: {maxDistanceToPointer !== null ? (100 * maxDistanceToPointer).toFixed(3) : '∅'}</li>
+        <li>Minimale: {meLosange !== null ? (100 * meLosange.radius).toFixed(3) : '∅'}</li>
+      </ul>
+    {/if}
   </div>
   <main class="canvas-container">
     {@render canvas()}
@@ -209,19 +270,41 @@
   </main>
 
   <aside class="controls">
-    <h2>Affichage des centres</h2>
+    <h2>Norme</h2>
     <label>
-      <input type="checkbox" bind:checked={showCenter1} />
-      Afficher le centre de gravité
+      <input type="radio" bind:group={norm} value="euclidean" />
+      Euclidienne
     </label>
     <label>
-      <input type="checkbox" bind:checked={showCenter2} />
-      Afficher le centre du cercle englobant minimum
+      <input type="radio" bind:group={norm} value="manhattan" />
+      Manhattan
     </label>
-    <label>
-      <input type="checkbox" bind:checked={showCenter3} />
-      Afficher le médian géométrique
-    </label>
+
+    {#if norm === "euclidean"}
+      <h2>Affichage des centres</h2>
+      <label>
+        <input type="checkbox" bind:checked={showCenter1} />
+        Centre de gravité
+      </label>
+      <label>
+        <input type="checkbox" bind:checked={showCenter2} />
+        Centre du cercle englobant minimum
+      </label>
+      <label>
+        <input type="checkbox" bind:checked={showCenter3} />
+        Médian géométrique
+      </label>
+    {:else}
+      <h2>Affichage des centres</h2>
+      <label>
+        <input type="checkbox" bind:checked={showCenter1} />
+        Médian L1
+      </label>
+      <label>
+        <input type="checkbox" bind:checked={showCenter2} />
+        Centre du losange englobant minimum
+      </label>
+    {/if}
   </aside>
 </div>
 
@@ -232,6 +315,10 @@
     gap: 2rem;
     align-items: flex-start;
     justify-content: space-between;
+  }
+
+  .info {
+    width: 20rem;
   }
 
   .canvas-container {
@@ -247,7 +334,7 @@
   }
 
   .controls {
-    min-width: 200px;
+    width: 22rem;
     padding: 1rem;
     border: 1px solid #ccc;
     border-radius: 0.5rem;
