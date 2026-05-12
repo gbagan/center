@@ -37,13 +37,13 @@
   let sumDistanceToCenter = $derived(
     median === null
     ? null
-    : points.reduce((acc, p) => acc + dist(p, median!), 0)
+    : points.reduce((acc, p) => acc + dist(p, median), 0)
   );
 
   let sumSquareDistanceToCenter = $derived(
     center1 === null
     ? null
-    : points.reduce((acc, p) => acc + dist(p, center1!) ** 2, 0)
+    : points.reduce((acc, p) => acc + dist(p, center1) ** 2, 0)
   );
 
   
@@ -154,6 +154,7 @@
         cy={100 * mec.center.y}
         onpointerenter={() => showMec = true}
         onpointerleave={() => showMec = false}
+
       />
     {/if}
     {#if showCenter3 && median !== null}

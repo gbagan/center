@@ -87,7 +87,7 @@ export function geometric_median(points: readonly Point[], eps=1e-5, maxIter=500
   if (points.length === 0) {
     return null;
   }
-  let {x, y} = centroid(points)!;
+  let current = centroid(points)!;
 
   for (let iter = 0; iter < maxIter; iter++) {
     let numX = 0;
@@ -95,26 +95,22 @@ export function geometric_median(points: readonly Point[], eps=1e-5, maxIter=500
     let den = 0;
 
     for (const p of points) {
-      const d = Math.hypot(x - p.x, y - p.y)
+      const d = dist(current, p);
       if (d < eps) return p;
       const w = 1 / d;
-      numX += p.x * w;
-      numY += p.y * w;
+      numX += w * p.x;
+      numY += w * p.y;
       den += w;
     }
 
-    const newX = numX / den
-    const newY = numY / den
-
-    const move = Math.hypot(newX - x, newY - y)
-
-    x = newX;
-    y = newY;
+    const next = {x: numX / den, y: numY / den};
+    const move = dist(current, next);
+    current = next;
 
     if (move < eps) {
       break
     }
   }
 
-  return {x, y}
+  return current
 }
