@@ -1,4 +1,4 @@
-import { median, minBy, sumBy } from "./util";
+import { median, sumBy } from "./util";
 
 export type Point = { readonly x: number, readonly y: number};
 export type Disk = { readonly center: Point, readonly radius: number };
@@ -13,6 +13,23 @@ export function centroid(ps: readonly Point[]) {
     x: sumBy(ps, p => p.x) / ps.length,
     y: sumBy(ps, p => p.y) / ps.length,
   }
+}
+
+export function dist(a: Point, b: Point) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+export function manhattan(a: Point, b: Point) {
+  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+}
+
+
+
+// Welzl's algorithm for minimum enclosing circle
+// https://en.wikipedia.org/wiki/Smallest-circle_problem
+
+function insideCircle(p: Point, d: Disk) {
+  return dist(p, d.center) <= d.radius + EPS
 }
 
 function circumcenter(a: Point, b: Point, c: Point): Disk {
@@ -36,18 +53,6 @@ function circumcenter(a: Point, b: Point, c: Point): Disk {
 
   const center = {x, y};
   return { center, radius: dist(center, a)}
-}
-
-export function dist(a: Point, b: Point) {
-  return Math.hypot(a.x - b.x, a.y - b.y);
-}
-
-export function manhattan(a: Point, b: Point) {
-  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
-}
-
-function insideCircle(p: Point, d: Disk) {
-  return dist(p, d.center) <= d.radius + EPS
 }
 
 function trivialCircle(points: readonly Point[]): Disk {
@@ -88,6 +93,11 @@ export function minimumEnclosingCircle(points: readonly Point[]): Disk | null {
   return welzl(points, [], points.length)
 }
 
+
+// geometric median
+// Weiszfeld's algorithm 
+// https://en.wikipedia.org/wiki/Geometric_median
+
 export function geometricMedian(points: readonly Point[], eps=1e-5, maxIter=500) {
   if (points.length === 0) {
     return null;
@@ -120,6 +130,8 @@ export function geometricMedian(points: readonly Point[], eps=1e-5, maxIter=500)
   return current
 }
 
+// minmax of L1 distance
+
 export function minimumEnclosingLosange(points: readonly Point[]): Disk | null {
   if (points.length === 0) {
     return null;
@@ -147,11 +159,10 @@ export function geometricMedianL1(points: readonly Point[]): Point | null {
 }
 
 export function sumSquareL1(p: Point, points: readonly Point[]) {
-  return sumBy(points, p2 => {
-    const l1 = manhattan(p, p2);
-    return l1 * l1;
-  });
+  return sumBy(points, p2 => manhattan(p, p2) ** 2);
 }
+
+// sum of L1²
 
 function solve1D(sorted: {a: number, c: number}[]): number {
   const n = sorted.length;
@@ -167,13 +178,12 @@ function solve1D(sorted: {a: number, c: number}[]): number {
       const lo = k === 0 ? -Infinity : sorted[k - 1].a;
       return Math.max(t, lo);
     }
-
     if (k < n) sumCp += sorted[k].c;
   }
   throw new Error("unreachable");
 }
 
-export function squareCenterL1(points: Point[], maxIter = 100, tol = 1e-9) {
+export function squareCenterL1(points: readonly Point[], maxIter = 20, eps = 1e-9) {
   if (points.length === 0) {
     return null;
   }
@@ -187,7 +197,7 @@ export function squareCenterL1(points: Point[], maxIter = 100, tol = 1e-9) {
     const xNew = solve1D(sortedByX.map(p => ({ a: p.x, c: Math.abs(y  - p.y) })));
     const yNew = solve1D(sortedByY.map(p => ({ a: p.y, c: Math.abs(xNew - p.x) })));
 
-    let test = (Math.abs(xNew - x) < tol && Math.abs(yNew - y) < tol);
+    const test = Math.abs(xNew - x) < eps && Math.abs(yNew - y) < eps;
     x = xNew;
     y = yNew;
     if (test) break;

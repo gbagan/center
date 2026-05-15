@@ -1,14 +1,14 @@
 export function sumBy<T>(arr: readonly T[], fn: (x: T) => number): number {
   let total = 0;
   for (let i = 0, len = arr.length; i < len; i++) {
-	total += fn(arr[i]);
+	  total += fn(arr[i]);
   }
   return total;
 }
 
-export function median(arr: readonly number[]): number {
+export function median(arr: readonly number[]): number | null{
   if (arr.length === 0) {
-    throw new Error("median of empty array");
+    return null;
   }
   const sorted = arr.toSorted((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
@@ -19,11 +19,8 @@ export function median(arr: readonly number[]): number {
   }
 }
 
-export function minBy<A>(arr: readonly A[], fn: (x: A) => number): A {
-  if (arr.length === 0) {
-    throw new Error("min of empty array");
-  }
-  let min = undefined;
+export function minBy<A>(arr: readonly A[], fn: (x: A) => number): A | null {
+  let min = null;
   let bestScore = Infinity;
   const n = arr.length;
   for (let i = 0; i < n; i++) {
@@ -34,5 +31,5 @@ export function minBy<A>(arr: readonly A[], fn: (x: A) => number): A {
       min = x;
     } 
   }
-  return min!;
+  return min;
 }
