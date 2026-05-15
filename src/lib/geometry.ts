@@ -1,4 +1,4 @@
-import { median, sumBy } from "./util";
+import { median, prefixSumsBy, sumBy } from "./util";
 
 export type Point = { readonly x: number, readonly y: number};
 export type Disk = { readonly center: Point, readonly radius: number };
@@ -149,6 +149,8 @@ export function minimumEnclosingLosange(points: readonly Point[]): Disk | null {
   return {center, radius};  
 }
 
+// sum of L1 distances
+
 export function geometricMedianL1(points: readonly Point[]): Point | null {
   if (points.length === 0) {
     return null;
@@ -164,21 +166,17 @@ export function sumSquareL1(p: Point, points: readonly Point[]) {
 
 // sum of L1²
 
-function solve1D(sorted: {a: number, c: number}[]): number {
+function solve1D(sorted: readonly number[], psums: readonly number[]): number {
   const n = sorted.length;
-  const meanA  = sumBy(sorted, p => p.a) / n;
-  const sumC = sumBy(sorted, p => p.c);
+  const meanA  = sumBy(sorted, p => p) / n;
+  const sum = psums.at(-1)!;
 
-  let sumCp = 0;
   for (let k = 0; k <= n; k++) {
-    const t  = meanA + (sumC - 2 * sumCp) / n;
-    const hi = k === n ? +Infinity : sorted[k].a;
-
-    if (t <= hi) {
-      const lo = k === 0 ? -Infinity : sorted[k - 1].a;
+    const t  = meanA + (sum - 2 * psums[k]) / n;
+    if (t <= (sorted[k] ?? Infinity)) {
+      const lo = sorted[k - 1] ?? -Infinity;
       return Math.max(t, lo);
     }
-    if (k < n) sumCp += sorted[k].c;
   }
   throw new Error("unreachable");
 }
@@ -190,12 +188,14 @@ export function squareCenterL1(points: readonly Point[], maxIter = 20, eps = 1e-
 
   const sortedByX = points.toSorted((a, b) => a.x - b.x);
   const sortedByY = points.toSorted((a, b) => a.y - b.y);
+  const xs = sortedByX.map(p => p.x);
+  const ys = sortedByY.map(p => p.y);
 
   let {x, y} = centroid(points)!;
 
   for (let iter = 0; iter < maxIter; iter++) {
-    const xNew = solve1D(sortedByX.map(p => ({ a: p.x, c: Math.abs(y  - p.y) })));
-    const yNew = solve1D(sortedByY.map(p => ({ a: p.y, c: Math.abs(xNew - p.x) })));
+    const xNew = solve1D(xs, prefixSumsBy(sortedByX, p => Math.abs(y  - p.y)));
+    const yNew = solve1D(ys, prefixSumsBy(sortedByY, p => Math.abs(xNew - p.x)));
 
     const test = Math.abs(xNew - x) < eps && Math.abs(yNew - y) < eps;
     x = xNew;

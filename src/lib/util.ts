@@ -33,3 +33,15 @@ export function minBy<A>(arr: readonly A[], fn: (x: A) => number): A | null {
   }
   return min;
 }
+
+export function prefixSumsBy<A>(arr: readonly A[], fn: (x: A) => number): number[] {
+  const result: number[] = [0];
+  let sum = 0;
+
+  for (const value of arr) {
+    sum += fn(value);
+    result.push(sum);
+  }
+
+  return result;
+}
