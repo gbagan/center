@@ -153,36 +153,6 @@ export function sumSquareL1(p: Point, points: readonly Point[]) {
   });
 }
 
-/*
-function squareL1Gradient(p: Point, points: readonly Point[]): [number, number] {
-  let gx = 0;
-  let gy = 0;
-  for (const p2 of points) {
-    const l1 = manhattan(p, p2);
-    gx += l1 * Math.sign(p.x - p2.x);
-    gy += l1 * Math.sign(p.y - p2.y);
-  }
-  return [2 * gx, 2 * gy];
-}
-
-function minimizeSquareL1(points: readonly Point[], p: Point, { lr = 0.1, maxIter = 10000, tol = 1e-5 } = {}): Point {
-  let {x, y} = p;
-  let i = 0;
-  for (i = 0; i < maxIter; i++) {
-    const [gx, gy] = squareL1Gradient({x, y}, points);
-    const dx = lr * gx;
-    const dy = lr * gy;
-    x -= dx;
-    y -= dy;
-    if (Math.abs(dx) < tol && Math.abs(dy) < tol) break;
-  }
-
-  console.log("i", i);
-
-  return {x, y};
-}
-*/
-
 function solve1D(sorted: {a: number, c: number}[]): number {
   const n = sorted.length;
   const meanA  = sumBy(sorted, p => p.a) / n;
@@ -218,37 +188,10 @@ export function squareCenterL1(points: Point[], maxIter = 100, tol = 1e-9) {
     const yNew = solve1D(sortedByY.map(p => ({ a: p.y, c: Math.abs(xNew - p.x) })));
 
     let test = (Math.abs(xNew - x) < tol && Math.abs(yNew - y) < tol);
-    x = xNew; y = yNew;
-    if (test) {
-      console.log("converged", iter);
-      break;
-    }
+    x = xNew;
+    y = yNew;
+    if (test) break;
   }
 
   return {x, y};
 }
-
-
-
-/*
-export function squareCenterL1(points: readonly Point[], nRestarts = 6) {
-  if (points.length === 0) {
-    return null;
-  }
-  
-  const xs = points.map(p => p.x), ys = points.map(p => p.y);
-  const minX = Math.min(...xs);
-  const maxX = Math.max(...xs);
-  const minY = Math.min(...ys);
-  const maxY = Math.max(...ys);
-  const cd = centroid(points)!;
-
-  const starts: Point[] = [cd, ...Array.from({ length: nRestarts - 1 }, () => ({
-    x: minX + Math.random() * (maxX - minX),
-    y: minY + Math.random() * (maxY - minY),
-  }))];
-
-  const candidates = starts.map(x0 => minimizeSquareL1(points, x0));
-  return minBy(candidates, p => sumSquareL1(p, points))!;
-}
-*/
