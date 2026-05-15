@@ -1,6 +1,8 @@
 <script lang="ts">
   import { centroid, dist, geometricMedian, geometricMedianL1, manhattan, minimumEnclosingCircle,
     minimumEnclosingLosange,
+    squareCenterL1,
+    sumSquareL1,
     type Disk, type Point } from "./lib/geometry";
   import { sumBy } from "./lib/util";
 
@@ -10,6 +12,7 @@
   let median: Point | null = $derived(geometricMedian(points));
   let meLosange: Disk | null = $derived(minimumEnclosingLosange(points));
   let medianL1: Point | null = $derived(geometricMedianL1(points));
+  let centerL12: Point | null = $derived(squareCenterL1(points));
   let mode: "remove" | "move" = $state("move");
   let norm: "euclidean" |  "manhattan" = $state("euclidean");
   let showCenter1 = $state(true);
@@ -17,6 +20,7 @@
   let showCenter3 = $state(true);
   let showCenter1L1 = $state(true);
   let showCenter2L1 = $state(true);
+  let showCenter3L1 = $state(true);
   let showMec = $state(false);
   let showPathsFromMedian = $state(false)
   let selectedNode: number | null = $state(null);
@@ -30,8 +34,6 @@
     : Math.max(0, ...points.map(p => manhattan(p, pointerPosition!), 0))
   );
 
-  
-
   let sumDistanceToPointer = $derived(
     pointerPosition === null
     ? null
@@ -43,7 +45,9 @@
   let sumSquareDistanceToPointer = $derived(
     pointerPosition === null
     ? null
-    : sumBy(points, p => dist(p, pointerPosition!) ** 2)
+    : norm === "euclidean"
+    ? sumBy(points, p => dist(p, pointerPosition!) ** 2)
+    : sumBy(points, p => manhattan(p, pointerPosition!) ** 2)
   );
 
 
@@ -54,9 +58,9 @@
   );
 
   let sumSquareDistanceToCenter = $derived(
-    center1 === null
-    ? null
-    : sumBy(points, p => dist(p, center1) ** 2)
+    norm === "euclidean"
+    ? (center1 === null ? null : sumBy(points, p => dist(p, center1) ** 2))
+    : (centerL12 === null ? null : sumSquareL1(centerL12, points))
   );
 
   function getPointerPosition(e: MouseEvent): Point {
@@ -216,6 +220,17 @@
         onpointerleave={() => showMec = false}
       />
     {/if}
+    {#if norm === "manhattan" && showCenter3L1 && centerL12 !== null}
+      <circle
+        r="1.5"
+        fill="green"
+        stroke="black"
+        stroke-width="0.1"
+        cx={100 * centerL12.x}
+        cy={100 * centerL12.y}
+      />
+    {/if}
+
     {#each points as point, i}
       <circle
         r="1.3"
@@ -256,6 +271,11 @@
         <li>Du pointeur: {sumDistanceToPointer !== null ? (100 * sumDistanceToPointer).toFixed(3) : '∅'}</li>
         <li>Minimale: {sumDistanceToCenter !== null ? (100 * sumDistanceToCenter).toFixed(3) : '∅'}</li>
       </ul>
+      <h2 style:color="green">Somme des distances L1²</h2>
+      <ul>
+        <li>Du pointeur: {sumSquareDistanceToPointer !== null ? (10000 * sumSquareDistanceToPointer).toFixed(3) : '∅'}</li>
+        <li>Minimale: {sumSquareDistanceToCenter !== null ? (10000 * sumSquareDistanceToCenter).toFixed(3) : '∅'}</li>
+      </ul>
       <h2 style:color="red">Distance maximale L1</h2>
       <ul>
         <li>Du pointeur: {maxDistanceToPointer !== null ? (100 * maxDistanceToPointer).toFixed(3) : '∅'}</li>
@@ -284,7 +304,7 @@
       <h2>Affichage des centres</h2>
       <label>
         <input type="checkbox" bind:checked={showCenter1} />
-        Centre de gravité
+        Barycentre
       </label>
       <label>
         <input type="checkbox" bind:checked={showCenter2} />
@@ -298,11 +318,15 @@
       <h2>Affichage des centres</h2>
       <label>
         <input type="checkbox" bind:checked={showCenter1L1} />
-        Médian L1
+        Point qui minimise la somme des L1
       </label>
       <label>
         <input type="checkbox" bind:checked={showCenter2L1} />
         Centre du losange englobant minimum
+      </label>
+      <label>
+        <input type="checkbox" bind:checked={showCenter3L1} />
+        Point qui minimise la somme des L1²
       </label>
     {/if}
   </aside>
